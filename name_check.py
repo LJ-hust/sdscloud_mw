@@ -1,8 +1,11 @@
-#edit by liuyun
 import re
 
+
+#edit by liuyun
 def sdscloud_container_name_check(container_name):
-#consist of small letter,digit and '-'
+    #consist of small letter,digit and '-'
+    #end or start with small letter or digit
+    #length must between 3 an 63
     if not container_name[0].isdigit() and not container_name[0].isalpha():
         return False
     if not container_name[-1].isdigit() and not container_name[-1].isalpha():
