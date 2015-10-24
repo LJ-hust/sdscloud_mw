@@ -26,7 +26,7 @@ def sdscloud_object_name_check(object_name):
     #'\n' and '\r' can not be in the name
     #length can not more than 128 byte
 
-    if object_name[0] in ("/","\\"):
+    if object_name[0] in ("/","\"):
         raise InvalidObjectNameError("the first character can not be '/' and '\'")
 
     if "\r" in object_name or "\n" in object_name:
