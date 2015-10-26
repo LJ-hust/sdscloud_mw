@@ -26,18 +26,17 @@ def sdscloud_object_name_check(object_name):
     #'\n' and '\r' can not be in the name
     #length can not more than 128 byte
 
-    if object_name[0] in ("/","\"):
-        raise InvalidObjectNameError("the first character can not be '/' and '\'")
+    if object_name[0] in ("/","\\"):
+        return False
 
     if "\r" in object_name or "\n" in object_name:
-        raise InvalidObjectNameError("the name can not have '\r' and '\n'")
+        return False
 
     object_name = urlquote(object_name)
     if len(object_name) > 128:
-        raise InvalidObjectNameError(value='Object name length must less than 128',object_name=object_name)
+        return False
 
     return True
-    pass
 
 if __name__ == "__main__":
     main()
