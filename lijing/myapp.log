@@ -1,0 +1,19 @@
+Mon, 09 Nov 2015 18:46:15 web.py[line:11]INFO Hello Terminal!
+Mon, 09 Nov 2015 18:46:16 httpserver.py[line:644]DEBUG Added task (0 tasks queued)
+Mon, 09 Nov 2015 18:46:16 web.py[line:11]INFO Hello Terminal!
+Mon, 09 Nov 2015 18:46:21 httpserver.py[line:644]DEBUG Added task (0 tasks queued)
+Mon, 09 Nov 2015 18:46:21 terminal.py[line:11]INFO Hello Terminal!
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:939]INFO Shutting down threadpool
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686253168384 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686236382976 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686244775680 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140685747418880 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686227990272 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140685730633472 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686269953792 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686278346496 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140685739026176 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:885]DEBUG Worker 140686261561088 asked to SHUTDOWN
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:987]INFO All workers stopped
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:939]INFO Shutting down threadpool
+Mon, 09 Nov 2015 18:46:26 httpserver.py[line:987]INFO All workers stopped
