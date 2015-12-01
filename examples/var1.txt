@@ -1,4 +1,0 @@
-s1.py
-s2.py
-s3.py
-s9.py
