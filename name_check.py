@@ -1,7 +1,6 @@
 import re
 
 from libcloud.utils.py3 import urlquote
-from libcloud.storage.types import InvalidObjectNameError
 
 #edit by liuyun
 def sdscloud_container_name_check(container_name):
