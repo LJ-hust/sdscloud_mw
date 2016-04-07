@@ -1,4 +1,4 @@
-#@ObjectControllerRouter.register(HYBIRD_POLICY)
+@ObjectControllerRouter.register(HYBIRD_POLICY)
 class HybridObjectController(BaseObjectController):
 
     def _backend_requests(self, req, nodes,
@@ -196,7 +196,8 @@ class HybridObjectController(BaseObjectController):
         statuses = []
         reasons = []
         bodies = []
-        etags = set()
+        local_etags = set()
+        cloud_etags = set()
         policy_list = []
 
         # define the policy of cloud&local
@@ -224,7 +225,7 @@ class HybridObjectController(BaseObjectController):
                 pile.spawn(self._get_conn_response, conn, req, policy_list[i],
                             final_phase=cloud_final_phase)
 
-        def _handle_response(conn, response, final_phase=False):
+        def _handle_response(conn, response, l_c, final_phase=False):
             statuses.append(response.status)
             reasons.append(response.reason)
             if final_phase:
@@ -245,18 +246,23 @@ class HybridObjectController(BaseObjectController):
                     {'status': response.status,
                      'body': body[:1024], 'path': req.path})
             elif is_success(response.status):
-                etags.add(response.getheader('etag').strip('"'))
+                if l_c == 'l':
+                    local_etags.add(response.getheader('etag').strip('"'))
+                elif l_c == 'c':
+                    cloud_etags.add(response.getheader('etag').strip('"'))
 
         quorum = False
         for i, (conn, response) in enumerate(pile):
             if response:
                 if policy_list[i] == 'ec' and des[i] == 'local':
-                    _handle_response(conn, response, local_final_phase)
+                    _handle_response(conn, response, 'l', local_final_phase)
                 elif policy_list[i] == 'ec' and des[i] == 'cloud':
-                    _handle_response(conn, response, cloud_final_phase)
-                else:
-                    _handle_response(conn, response, True)
-                """????"""
+                    _handle_response(conn, response, 'c', cloud_final_phase)
+                elif des[i] == 'local':
+                    _handle_response(conn, response, 'l', True)
+                elif des[i] == 'cloud':
+                    _handle_response(conn, response, 'c', True)
+
                 if self._have_adequate_successes(statuses, min_local_responses,
                                                  min_cloud_responses):
                     break
@@ -268,11 +274,13 @@ class HybridObjectController(BaseObjectController):
         for i, (conn, response) in enumerate(finished_quickly):
             if response:
                 if policy_list[i] == 'ec' and des[i] == 'local':
-                    _handle_response(conn, response, local_final_phase)
+                    _handle_response(conn, response, 'l', local_final_phase)
                 elif policy_list[i] == 'ec' and des[i] == 'cloud':
-                    _handle_response(conn, response, cloud_final_phase)
-                else:
-                    _handle_response(conn, response, True)
+                    _handle_response(conn, response, 'c', cloud_final_phase)
+                elif des[i] == 'local':
+                    _handle_response(conn, response, 'l', True)
+                elif des[i] == 'cloud':
+                    _handle_response(conn, response, 'c', True)
 
         local_statuses = 0
         cloud_statuses = 0
@@ -318,26 +326,38 @@ class HybridObjectController(BaseObjectController):
                 reasons.append('')
                 bodies.append('')
 
-        return statuses, reasons, bodies, etags, quorum
+        return statuses, reasons, bodies, local_etags, cloud_etags, quorum
 
 
-    def _transfer_data(self, ...):
+    def _transfer_data(self, req, policy, data_source, conns, des, local_nodes,
+                        cloud_nodes, min_local_conns, min_cloud_conns, etag_hasher)
+        local_conns = []
+        cloud_conns = []
 
+        for i, conn in enumerate(conns):
+            if des[i] == 'local':
+                local_conns.append(conn)
+            elif des[i] == 'cloud':
+                cloud_conns.append(conn)
         # all replicas
         if hybrid_type == 1:
-            _transfer_data_replica(local_nodes + cloud_nodes)
+            _transfer_data_replica(req, data_source, conns, local_nodes + cloud_nodes)
         # the local uses the policy of replicas, the cloud use ec
         elif hybrid_type == 2:
-            _transfer_data_replica(local_nodes)
-            _transfer_data_ec(cloud_nodes)
+            _transfer_data_replica(req, data_source, local_conns, local_nodes)
+            _transfer_data_ec(req, policy, data_source, cloud_conns, cloud_nodes,
+                       min_cloud_conns, etag_hasher)
         # the cloud uses the policy of replicas, the local use ec
         elif hybrid_type == 3:
-            _transfer_data_replica(cloud_nodes)
-            _transfer_data_ec(local_nodes)
+            _transfer_data_replica(req, data_source, cloud_conns, cloud_nodes)
+            _transfer_data_ec(req, policy, data_source, local_conns, local_nodes,
+                       min_local_conns, etag_hasher)
         # all ec
         elif hybrid_type == 4:
-            _transfer_data_ec(local_nodes)
-            _transfer_data_ec(cloud_nodes)
+            _transfer_data_ec(req, policy, data_source, local_conns, local_nodes,
+                       min_local_conns, etag_hasher)
+            _transfer_data_ec(req, policy, data_source, cloud_conns, cloud_nodes,
+                       min_cloud_conns, etag_hasher)
 
 
     def _store_object(self, req, data_source, local_nodes, cloud_nodes, partition,
@@ -351,11 +371,27 @@ class HybridObjectController(BaseObjectController):
         # the same as the request body sent proxy -> object, we
         # can't rely on the object-server to do the etag checking -
         # so we have to do it here.
-        etag_hasher = md5()
         nodes = local_nodes + cloud_nodes
         ####
         min_local_conns,min_cloud_conns = policy.quorum
 
+        etag_hasher = md5()
+
+        if is_local_ec:
+            local_final_phase = True
+            need_local_quorum = False
+            min_local_resp = 2
+        else:
+            local_final_phase = ???
+            min_local_resp =2
+
+        if is_cloud_ec:
+            cloud_final_phase = True
+            need_cloud_quorum = False
+            min_cloud_resp = 2
+        else:
+            cloud_final_phase = ???
+            min_cloud_resp =2
 
         conns, des = self._get_put_connections(req, nodes, partition,
                                                outgoing_headers,policy)
@@ -365,46 +401,18 @@ class HybridObjectController(BaseObjectController):
             self._check_failure_put_connections(conns, des, req, nodes,
                                                 min_local_conns, min_cloud_conns)
 
-            self._transfer_data(req, policy, data_source, putters,
-                                nodes, min_conns, etag_hasher)
-
-            if is_local_ec:
-                local_final_phase = True
-                need_local_quorum = False
-                min_local_resp = 2
-            else:
-                local_final_phase = ???
-                min_local_resp =?
-
-            if is_cloud_ec:
-                cloud_final_phase = True
-                need_cloud_quorum = False
-                min_cloud_resp = 2
-            else:
-                cloud_final_phase = ???
-                min_cloud_resp =?
+            self._transfer_data(req, policy, data_source, conns, des, local_nodes,
+                                cloud_nodes, min_local_conns, min_cloud_conns, etag_hasher)
 
             conns = [conn for conn in conns if not conn.failed]
 
             # ignore response etags, and quorum boolean
-            statuses, reasons, bodies, _etags, _quorum = \
+            statuses, reasons, bodies, local_etags, cloud_etags, _quorum = \
                 self._get_put_responses(req, conns, len(local_nodes), len(cloud_nodes),
                                         des, is_local_ec, is_cloud_ec,
                                         local_final_phase, cloud_final_phase,
                                         min_local_resp, min_cloud_resp,
                                         need_local_quorum, nees_cloud_quorum)
-
-            #test by lijing
-            self.app.logger.info('statuses:')
-            self.app.logger.info(statuses)
-            self.app.logger.info('reasons:')
-            self.app.logger.info(reasons)
-            self.app.logger.info('bodies:')
-            self.app.logger.info(bodies)
-            self.app.logger.info('etags:')
-            self.app.logger.info(_etags)
-            self.app.logger.info('_quorum:')
-            self.app.logger.info(_quorum)
 
         except HTTPException as resp:
             return resp
@@ -412,36 +420,26 @@ class HybridObjectController(BaseObjectController):
             for conn in conns:
                 conn.close()
 
-        """etag = etag_hasher.hexdigest()
-        #test by lijing
-        self.app.logger.info(etag)"""
+        if not is_local_ec:
+            if len(local_etags) > 1:
+                self.app.logger.error(
+                    _('Object servers returned %s mismatched etags'), len(local_etags))
+                return HTTPServerError(request=req)
 
-        ####
+        if not is_cloud_ec:
+            if len(cloud_etags) > 1:
+                self.app.logger.error(
+                    _('Object servers returned %s mismatched etags'), len(cloud_etags))
+                return HTTPServerError(request=req)
 
-
-        if is_local_ec:
-            etag_local = etag_hasher_l.hexdigest()
-        else:
-            etag_local = '...'
-        if is_cloud_ec:
-            etag_cloud = etag_hasher_c.hexdigest()
-        else:
-            etag_cloud = '...'
-
-
+        etag = etag_hasher.hexdigest()
         resp = self.best_response(req, statuses, reasons, bodies,
                                   _('Object PUT'), etag=etag,
                                   quorum_size=min_local_conns+min_cloud_conns)
 
-        self.app.logger.info('~~~')
-        self.app.logger.info(resp.headers)
-
-        resp.last_modified = math.ceil(
+        resp.last_modifie = math.ceil(
             float(Timestamp(req.headers['X-Timestamp'])))
 
-        self.app.logger.info('~~~')
-        self.app.logger.info(resp.headers)
         return resp
-
 
 
