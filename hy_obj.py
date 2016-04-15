@@ -140,9 +140,9 @@ class HybridObjectController(BaseObjectController):
 
     def _get_conn_response(self, conn, req, policy, final_phase=True, **kwargs):
         try:
-            if policy = 'relica':
+            if policy == 'relica':
                 resp = self._await_replica_response(conn, **kwargs)
-            elif policy = 'ec':
+            elif policy == 'ec':
                 resp = self._await_ec_response(conn, final_phase=final_phase,
                                         **kwargs)
         except (Exception, Timeout):
